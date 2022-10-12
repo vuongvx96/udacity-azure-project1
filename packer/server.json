@@ -1,0 +1,52 @@
+{
+  "variables": {
+    "client_id": "4ece97e6-f734-4143-9780-a64227f46908",
+    "client_secret": "3k08Q~rhE5A9R~jF_BWOk6N6yFUsE0wFtVCKOcf7",
+    "subscription_id": "fbf787c1-ed83-44ad-946e-6ff3b027c400"
+  },
+  "builders": [
+    {
+      "type": "azure-arm",
+
+      "client_id": "{{user `client_id`}}",
+      "client_secret": "{{user `client_secret`}}",
+      "subscription_id": "{{user `subscription_id`}}",
+
+      "os_type": "Linux",
+      "image_publisher": "Canonical",
+      "image_offer": "UbuntuServer",
+      "image_sku": "18.04-LTS",
+
+      "managed_image_resource_group_name": "Azuredevops",
+      "managed_image_name": "myPackerImage",
+
+      "location": "East US",
+      "vm_size": "Standard_B1s",
+      "azure_Tags": {
+        "resource_type": "azure-arm"
+      }
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "file",
+      "source": "http.service",
+      "destination": "~/http.service"
+    },
+    {
+      "inline": [
+        "apt-get update",
+        "apt-get upgrade -y",
+        "echo 'Hello, World!' > index.html",
+        "sudo mv http.service /etc/systemd/system",
+        "sudo chown root:root /etc/systemd/system/http.service",
+        "sudo chmod 777 /etc/systemd/system/http.service",
+        "sudo systemctl daemon-reload",
+        "sudo systemctl enable http"
+      ],
+      "inline_shebang": "/bin/sh -x",
+      "type": "shell",
+      "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'"
+    }
+  ]
+}
