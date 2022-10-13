@@ -4,6 +4,9 @@
 
 This is a project related to Udacity Azure DevOps nanodegree. It deploys a tagging policy, a Packer image, which, using Terraform, deploys a customizeable, scalable web server in Azure.
 
+### Overview
+This project will deploy a set number of virtual machines (default is 2) behind a load balancer, and set up all the other resources that need to be deployed for those virtual machines such as network security groups so the VM's are only accessible through the internal network, Virtual Networks, Subnets, Virtual Nics and more.
+
 ### Dependencies
 
 1. Create an [Azure Account](https://portal.azure.com)
@@ -27,88 +30,30 @@ This is a project related to Udacity Azure DevOps nanodegree. It deploys a taggi
 
 The project is divided into three directories: **packer** for the image creation file, **terraform** for the Terraform files, and **policy** for the policy files. All the steps and the resulting output are shown in the Log.md file. The following steps are to be executed on the command line.
 
-### 1. Authenticate into Azure
-Using the Azure CLI, authenticate into your desired subscription: `az login`
+1. Deploy an Azure policy that ensures all resources are tagged
+    - Create the Azure policy definition by running this command:
 
-### 2. Set environment variables
-To get your azure variables:
-`az ad sp create-for-rbac --query "{client_id: appId, client_secret: password, tenant_id: tenant}"`
+        `az policy definition create --name tagging-policy --rules "tagging_policy.json" --display-name "deny-creation-of-untagged-resources" --description "This policy denies the creation of any resource if it does not have any tags" --mode All`
 
-Open on your terminal and add the following environment variables
-- ARM_CLIENT_ID
-- ARM_CLIENT_SECRET
-- ARM_SUBSCRIPTION_ID
-- ARM_TENANT_ID
+    - Create the Azure policy assignment by running this command:
 
-These variables are used to connect to your subscription on Azure. Below are examples of adding enviroment variables to your terminal and os of choice.
+        `az policy assignment create --policy tagging-policy --name tagging-policy`
+    - Verify policy effectiveness by creating resources
 
-#### Windows
-Example: `setx ARM_CLIENT_ID '0000000-0000-0000-0000-000000000000'`
+2. Create a Packer image deployable by Terraform
+    - Create an image resource group named `Azuredevops` by: `az group create --location eastus --name Azuredevops`
+    - Create a Service Principal for Terraform named `TerraformSP` by: `az ad sp create-for-rbac --role="Contributor" --name="TerraformSP"`, and such command outputs 5 values: `appId`, `displayName`, `name`, `password`, and `tenant`.
+    - Export environment variables `ARM_CLIENT_ID` and `ARM_CLIENT_SECRET` that correspond to the above `appId` and `password`, respectively, as well as `ARM_SUBSCRIPTION_ID` which is the Azure Subscription ID.
+    - Complete the Packer template file [server.json](./packer/server.json)
+    - Create the image by: `packer build server.json` (if any user variables remain to be assigned, place `-var 'key=value'` between `packer build` and `server.json`)
 
-#### Mac OS
-Example: `export ARM_CLIENT_ID='0000000-0000-0000-0000-000000000000'`
+3. Deploy Azure resources with Terraform
+    - Complete terraform configuration files
+    - Plan the Terraform deployment: `terraform plan -out solution.plan` ([vars.tf](./terraform/vars.tf) defines all Terraform user variables
+    - Apply the Terraform deployment: `terraform apply "solution.plan"`
 
-#### Linux
-Example: `ARM_CLIENT_ID='0000000-0000-0000-0000-000000000000'`
-
-### 3. Deploy a policy
-This example policy will deny the creation of any resources with at least one tag
-
-Create definition:
-
-`az policy definition create --name tagging-policy --rules "tagging_policy.json" --display-name "deny-creation-of-untagged-resources" --description "This policy denies the creation of any resource if it does not have any tags" --mode All`
-
-Create assignment:
-
-`az policy assignment create --policy tagging-policy --name tagging-policy`
-
-List the policy assignments to verify that the policy has been applied:
-
-`az policy assignment list`
-
-### 4. Create a Server Image
-Create image:
-
-`packer build server.json`
-
-View images:
-
-`az image list`
-
-(When done) Delete images:
-
-`az image delete -g <resource group> -n <name>`
-
-### 5. Deploy infrastructure
-(Optional) Customize vars.tf
-
-Variables from vars.tf are called from main.tf, for example the variable prefix is called as:
-
-`${var.prefix}`
-
-In vars.tf, the description and value is assigned in the following manner:
-
-    variable "prefix" 
-    {
-        description = "The prefix which should be used for all resources in the resource group specified"
-        default = "udacity-nd82-project-1"
-    }
-
-Create infrastructure plan:
-
-`terraform plan -out solution.plan`
-
-Deploy the infrastructure plan:
-
-`terraform apply "solution.plan"`
-
-View infrastructure:
-
-`terraform show`
-
-(When done) Destroy infrastructure:
-
-`terraform destroy`
-
+4. Destroy all Azure resources
+    - Destroy resources built by Terraform: `terraform destroy`
+    - Destroy image built by Packer: `az image delete -g Azuredevops -n myPackerImage`
 ### Output
 See [here](./Log.md)

@@ -87,6 +87,12 @@ resource "azurerm_network_interface" "main" {
   }
 }
 
+resource "azurerm_network_interface_security_group_association" "main" {
+  count                     = var.num_of_vms
+  network_interface_id      = azurerm_network_interface.main[count.index].id
+  network_security_group_id = azurerm_network_security_group.main.id
+}
+
 # Create public IP
 resource "azurerm_public_ip" "main" {
   name                = "${var.prefix}-public-ip"
