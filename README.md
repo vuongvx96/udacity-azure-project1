@@ -28,7 +28,7 @@ This project will deploy a set number of virtual machines (default is 2) behind 
 
 ### Instructions
 
-The project is divided into three directories: **packer** for the image creation file, **terraform** for the Terraform files, and **policy** for the policy files. All the steps and the resulting output are shown in the Log.md file. The following steps are to be executed on the command line.
+The project is divided into three directories: **packer** for the image creation file, **terraform** for the Terraform files, and **policy** for the policy files. All the steps and the resulting output are shown in the [Log.md](./Log.md) file. The following steps are to be executed on the command line.
 
 1. Deploy an Azure policy that ensures all resources are tagged
     - Create the Azure policy definition by running this command:
@@ -47,13 +47,22 @@ The project is divided into three directories: **packer** for the image creation
     - Complete the Packer template file [server.json](./packer/server.json)
     - Create the image by: `packer build server.json` (if any user variables remain to be assigned, place `-var 'key=value'` between `packer build` and `server.json`)
 
-3. Deploy Azure resources with Terraform
+3. Customize Terraform template variables (Optional)
+
+    - The file `terraform/vars.tf` contains all the variables used inside the `terraform/main.tf`. If you want to personnalize the code, it is likely those values you want to modify first.
+    - Make sure you set the right value for these variables for your Azure account, such as `packer_image_rg`, `packer_image`, and `resource_group`; otherwise, Terraform will deploy, but the web server may not be working.
+
+4. Deploy Azure resources with Terraform
     - Complete terraform configuration files
     - Plan the Terraform deployment: `terraform plan -out solution.plan` ([vars.tf](./terraform/vars.tf) defines all Terraform user variables
     - Apply the Terraform deployment: `terraform apply "solution.plan"`
 
-4. Destroy all Azure resources
+5. Destroy all Azure resources
     - Destroy resources built by Terraform: `terraform destroy`
     - Destroy image built by Packer: `az image delete -g Azuredevops -n myPackerImage`
 ### Output
-See [here](./Log.md)
+1. Terraform show command output
+![Terraform show command output](./terraform/Terraform_show_output.png)
+
+2. Screenshot of the infrastructure in Azure:
+![Screenshot of the infrastructure in Azure](./terraform/infra.png)
